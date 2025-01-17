@@ -22,7 +22,7 @@ def UARTTransmitter(tx, data, start, clk, baudrate_clk, busy):
 	def logic():
 		if start and not busy:
 			# Load start bit (0), data, and stop bit(1) into tx_reg
-			tx_reg.next = concat(Signal(intbv(1)[1:]),data,Signal(intbv(0)[1:]))
+			tx_reg.next = intbv((1 << 9 ) | (int(data) << 1 )| 0)[10:]
 			bit_count.next = 0
 			busy.next = True
 			
@@ -30,9 +30,9 @@ def UARTTransmitter(tx, data, start, clk, baudrate_clk, busy):
 			if bit_count < 10:
 				tx.next = tx_reg[0] #LSB first
 				tx_reg.next = tx_reg >> 1 #Shift data
-				bit_count = bit_count + 1
+				bit_count.next = bit_count + 1
 			else:
-			busy.next = False # End of transmission
+				busy.next = False # End of transmission
 			
 	return logic
 	
@@ -60,7 +60,7 @@ def UARTReceiver(rx, data, valid,clk, baudrate_clk):
 		
 		elif receiving and baudrate_clk:
 			if bit_count < 10:
-				rx_reg.next = concat(rx,rx_reg[9:1])
+				rx_reg.next = intbv((rx << 9) | (rx_reg >> 1))[10:]
 				bit_count.next = bit_count + 1
 			else:
 				# Data received, extract 8 bits and validate stop bit
@@ -73,7 +73,7 @@ def UARTReceiver(rx, data, valid,clk, baudrate_clk):
 	return logic
 	
 @block
-def BaudRateGenerator(baurate_clk, clk, baud_divisor):
+def BaudRateGenerator(baudrate_clk, clk, baud_divisor):
 	"""
 	Baud Rate Generator
 	
@@ -155,4 +155,4 @@ def testbench():
 #Run the testbench
 UART_tb = testbench()
 UART_tb.config_sim(trace=True)
-tb.run_sim()
+UART_tb.run_sim()
