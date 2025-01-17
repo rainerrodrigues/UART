@@ -72,4 +72,25 @@ def UARTReceiver(rx, data, valid,clk, baudrate_clk):
 				
 	return logic
 	
-
+@block
+def BaudRateGenerator(baurate_clk, clk, baud_divisor):
+	"""
+	Baud Rate Generator
+	
+	baudrate_clk	-- Baudrate clock enable
+	clk		-- System clock
+	baud_divisor	-- Baudrate divisor
+	"""
+	
+	counter = Signal(intbv(0,min=0,max=baud_divisor))
+	
+	@always_seq(clk.posedge, reset=None)
+	def logic():
+		if counter == baud_divisor -1:
+			baudrate_clk.next = True
+			counter.next = 0
+		else:
+			baudrate_clk.next = False
+			counter.next = counter + 1
+			
+	return logic
