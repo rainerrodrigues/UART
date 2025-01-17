@@ -36,3 +36,40 @@ def UARTTransmitter(tx, data, start, clk, baudrate_clk, busy):
 			
 	return logic
 	
+@block
+def UARTReceiver(rx, data, valid,clk, baudrate_clk):
+	"""
+	UART Receiver
+	
+	rx	-- Received data (serial input)
+	data	-- Received data (8 bits)
+	valid	-- Valid data signal
+	clk	-- System clock
+	baudrate_clk	-- Baud rate clock enable
+	"""
+	
+	rx_reg = Signal(intbv(0)[10:]) 
+	bit_count = Signal(intbv(0,min=0,max=11)) # Tracks received bits
+	receiving = Signal(bool(0))
+	
+	@always_seq(clk.posedge, reset=None)
+	def logic():
+		if not receiving and rx == 0:
+			receiving.next = True
+			bit_count.next = 0
+		
+		elif receiving and baudrate_clk:
+			if bit_count < 10:
+				rx_reg.next = concat(rx,rx_reg[9:1])
+				bit_count.next = bit_count + 1
+			else:
+				# Data received, extract 8 bits and validate stop bit
+				if rx_reg[9]:	# Stop bit must be 1
+					data.next = rx_reg[8:0]
+					valid.next = True
+				receiving.next = False
+				valid.next = False
+				
+	return logic
+	
+
